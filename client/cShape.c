@@ -1,24 +1,9 @@
 #include <errno.h>
+#include "cshape.h"
 #include "display.h"
 
 
-#define CSHAPE_WINDOW_WIDTH 800
-#define CSHAPE_WINDOW_HEIGHT 600
-#define CSHAPE_WINDOW_TITLE "cShape"
-
-//Structure définissant une figure
-struct cshape_shape{
-    int nb_lines;
-    cshape_line[10] lines;
-};
-
-//Structure définissant une ligne
-struct cshape_line{
-    int x1;
-    int y1;
-    int x2;
-    int y2;
-};
+#include <SDL2/SDL.h>
 
 static void errno_exit (const char *s)
 {
@@ -30,17 +15,59 @@ _Bool cShape_initDisplay(int width, int height, const char *title){
     return displayInit(title,width,height) == 0;
 }
 
+void cShape_initShape(cShape_shape* shape){
+    shape->nb_lines = 0;
+
+    //On parcourt toutes les lignes possibles pour les inits correctement
+    for(int i = 0; i<CSHAPE_NBLINESMAX_PER_SHAPE; i++){
+        shape->lines[i].plot_first.x = -1;
+        shape->lines[i].plot_first.y = -1;
+        shape->lines[i].plot_last.x = -1;
+        shape->lines[i].plot_last.y = -1;
+    }
+}
+
+void cShape_submit_shape(cShape_shape* shape, cShape_shape figs[], int* figs_size){
+
+    printf("\n\n\ncS_s_s\n");
+
+
+    printf("   nbLigne entrant : %d\n", shape->nb_lines);
+
+    if(shape->nb_lines > 0){
+        cShape_shape new_shape;
+        cShape_initShape(&new_shape);
+
+        //Copying shape into new_shape
+        new_shape.nb_lines = shape->nb_lines;
+        for(int i = 0; i < shape->nb_lines; i++){
+            new_shape.lines[i].plot_first.x = shape->lines[i].plot_first.x;
+            new_shape.lines[i].plot_first.y = shape->lines[i].plot_first.y;
+
+            new_shape.lines[i].plot_last.x = shape->lines[i].plot_last.x;
+            new_shape.lines[i].plot_last.y = shape->lines[i].plot_last.y;
+        }
+
+
+        //Adding it to the main list of shapes
+        figs[*figs_size] = new_shape;
+        *figs_size = *figs_size+1;
+
+        cShape_initShape(shape);
+    }
+    //exit(0);
+}
+
 void cShape_mainLoop(){
 
     _Bool quit = false;
     SDL_Event e;
-    int mouse_x,mouse_y, nb_figures;
-    int line[2][2] = {
-                        {-1,-1},
-                        {-1,-1}
-                     };
+    int mouse_x,mouse_y, nb_figures = 0;
+    Uint8* keys;
+    cShape_shape figures[CSHAPE_NBFIGMAX]; //Tableau de figures
 
-    cshape_shape[100] figures;
+    cShape_shape figActuel; //Figure qu'on est entrain de construire
+    cShape_initShape(&figActuel);
 
 
     //Init SDL display
@@ -59,28 +86,63 @@ void cShape_mainLoop(){
                     quit = true;
                     break;
 
+                case SDL_KEYDOWN:
+                    printf("\n\nKEYDOWN : %d\n\n", e.key.keysym.sym);
+                    if ( e.key.keysym.sym == 13 ) { //Si ENTREE est PRESSED
+                        //Finition de la figure
+                        printf("ENTER DOWN\nnbfig = %d\n", nb_figures);
+                        cShape_submit_shape(&figActuel,figures, &nb_figures);
+                        printf("   nbLigne sortant : %d\n", figures[nb_figures-1].nb_lines);
+                    }
+                    break;
+
+                case SDL_MOUSEMOTION:
+                    //Si la souris bouge, la ligne qu'on est entrain de tracer suivra
+                    printf("Bonjour\n");
+                    SDL_GetMouseState(&mouse_x, &mouse_y);
+                    if(!(figActuel.nb_lines == 0 && figActuel.lines[figActuel.nb_lines].plot_first.x == -1)){
+                        figActuel.lines[figActuel.nb_lines].plot_last.x = mouse_x;
+                        figActuel.lines[figActuel.nb_lines].plot_last.y = mouse_y;
+                    }
+                    break;
                 //Mouse Event
                 case SDL_MOUSEBUTTONDOWN:
                     SDL_GetMouseState(&mouse_x, &mouse_y);
                     printf("MouseEvent at (%d,%d)\n", mouse_x, mouse_y);
 
-                    if (line[0][0] == -1){
-                        line[0][0] = mouse_x;
-                        line[0][1] = mouse_y;
-                    }else{
-                        line[1][0] = mouse_x;
-                        line[1][1] = mouse_y;
-                        displayDrawLine(line[0][0], line[0][1], line[1][0], line[1][1], 127, 255, 0, 0);
-                        line[0][0] = -1;
-                        line[0][1] = -1;
-                    }
+                    //Si c'est le tout premier point de la figure
+                    if(figActuel.nb_lines == 0 && figActuel.lines[figActuel.nb_lines].plot_first.x == -1){
+                        //On set le premier point
+                        figActuel.lines[figActuel.nb_lines].plot_first.x = mouse_x;
+                        figActuel.lines[figActuel.nb_lines].plot_first.y = mouse_y;
 
+                        //Et on mets le dernier de la ligne au niveau du curseur
+                        //car il a été initialisé a -1;-1
+                        figActuel.lines[figActuel.nb_lines].plot_last.x = mouse_x;
+                        figActuel.lines[figActuel.nb_lines].plot_last.y = mouse_y;
+
+                    }else{
+                        //Si c'est n'importe quel autre point
+                        //On finit la ligne actuelle
+                        figActuel.lines[figActuel.nb_lines].plot_last.x = mouse_x;
+                        figActuel.lines[figActuel.nb_lines].plot_last.y = mouse_y;
+                        //Et on passe a la suivante en initialisant son premier point
+                        //a la suite de la ligne que l'on vient de finir
+                        figActuel.nb_lines++;
+                        figActuel.lines[figActuel.nb_lines].plot_first.x = mouse_x;
+                        figActuel.lines[figActuel.nb_lines].plot_first.y = mouse_y;
+
+                        figActuel.lines[figActuel.nb_lines].plot_last.x = mouse_x;
+                        figActuel.lines[figActuel.nb_lines].plot_last.y = mouse_y;
+
+                    }
                     break;
             }
         }
 
-        //Render actual scene to don't let SDL erase our scene
-        displayPersistentScreen();
+        delay(20);
+        //Render scene
+        cShape_render(figures, nb_figures, figActuel);
     }
 
 }
