@@ -1,4 +1,6 @@
 #include <errno.h>
+#include <stdio.h>
+#include <math.h>
 #include "cshape.h"
 #include "display.h"
 
@@ -27,6 +29,27 @@ void cShape_initShape(cShape_shape* shape){
     }
 }
 
+/**
+ * Detecting if the last point of the shape is near the first one
+ * to collapse them
+ */
+void cShape_rounding_last_lines(cShape_shape* shape){
+
+    cShape_plot first_plot= shape->lines[0].plot_first;
+    cShape_plot last_plot= shape->lines[shape->nb_lines-1].plot_last;
+
+
+    // sqrt( (x2-x1) + (y2-y1))
+    double dist = sqrt( pow((last_plot.x-first_plot.x),2)+ pow((last_plot.y-first_plot.y),2));
+    printf("DIST : %lf\n", dist);
+    if (dist <= CSHAPE_ROUNDING_DISTANCE){
+        printf("Assez prof pour les collapse");
+        shape->lines[shape->nb_lines-1].plot_last.x = first_plot.x;
+        shape->lines[shape->nb_lines-1].plot_last.y = first_plot.y;
+    }
+
+}
+
 void cShape_submit_shape(cShape_shape* shape, cShape_shape figs[], int* figs_size){
 
     printf("\n\n\ncS_s_s\n");
@@ -35,6 +58,9 @@ void cShape_submit_shape(cShape_shape* shape, cShape_shape figs[], int* figs_siz
     printf("   nbLigne entrant : %d\n", shape->nb_lines);
 
     if(shape->nb_lines > 0){
+
+        cShape_rounding_last_lines(shape);
+
         cShape_shape new_shape;
         cShape_initShape(&new_shape);
 
@@ -87,18 +113,18 @@ void cShape_mainLoop(){
                     break;
 
                 case SDL_KEYDOWN:
-                    printf("\n\nKEYDOWN : %d\n\n", e.key.keysym.sym);
+                    //printf("\n\nKEYDOWN : %d\n\n", e.key.keysym.sym);
                     if ( e.key.keysym.sym == 13 ) { //Si ENTREE est PRESSED
                         //Finition de la figure
-                        printf("ENTER DOWN\nnbfig = %d\n", nb_figures);
+                        //printf("ENTER DOWN\nnbfig = %d\n", nb_figures);
                         cShape_submit_shape(&figActuel,figures, &nb_figures);
-                        printf("   nbLigne sortant : %d\n", figures[nb_figures-1].nb_lines);
+                        //printf("   nbLigne sortant : %d\n", figures[nb_figures-1].nb_lines);
                     }
                     break;
 
                 case SDL_MOUSEMOTION:
                     //Si la souris bouge, la ligne qu'on est entrain de tracer suivra
-                    printf("Bonjour\n");
+                    //printf("Bonjour\n");
                     SDL_GetMouseState(&mouse_x, &mouse_y);
                     if(!(figActuel.nb_lines == 0 && figActuel.lines[figActuel.nb_lines].plot_first.x == -1)){
                         figActuel.lines[figActuel.nb_lines].plot_last.x = mouse_x;

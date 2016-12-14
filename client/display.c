@@ -63,16 +63,16 @@ void cShape_render(cShape_shape figs[], int figs_size, cShape_shape figActuel){
 
     displayDrawRect(0, 0,CSHAPE_WINDOW_WIDTH,CSHAPE_WINDOW_HEIGHT, 255, 255, 255, 255, true);
 
-    printf("cShape_render\nNb figs : %d\n", figs_size);
+    //printf("cShape_render\nNb figs : %d\n", figs_size);
     //Affichage de toutes les figures
     for(int i=0; i<figs_size; i++){
-        printf("fig[%d], nb line = %d\n", i, figs[i].nb_lines);
+        //printf("fig[%d], nb line = %d\n", i, figs[i].nb_lines);
         for(int j=0; j<figs[i].nb_lines;j++){
             int x1 = figs[i].lines[j].plot_first.x;
             int y1 = figs[i].lines[j].plot_first.y;
             int x2 = figs[i].lines[j].plot_last.x;
             int y2 = figs[i].lines[j].plot_last.y;
-            printf("Render line : (%d,%d);(%d,%d)\n", x1,y1,x2,y2);
+            //printf("Render line : (%d,%d);(%d,%d)\n", x1,y1,x2,y2);
             displayDrawLine(x1,y1,x2,y2,255,255,0,0);
         }
     }
@@ -84,7 +84,7 @@ void cShape_render(cShape_shape figs[], int figs_size, cShape_shape figActuel){
             int y1 = figActuel.lines[i].plot_first.y;
             int x2 = figActuel.lines[i].plot_last.x;
             int y2 = figActuel.lines[i].plot_last.y;
-            printf("Render line : (%d,%d);(%d,%d)\n", x1,y1,x2,y2);
+            //printf("Render line : (%d,%d);(%d,%d)\n", x1,y1,x2,y2);
             displayDrawLine(x1,y1,x2,y2,255,255,0,0);
         }
     }

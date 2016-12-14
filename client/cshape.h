@@ -1,3 +1,4 @@
+
 #ifndef __CSHAPE_H__
 #define __CSHAPE_H__
 
@@ -6,7 +7,7 @@
 #define CSHAPE_WINDOW_TITLE             "cShape"
 #define CSHAPE_NBLINESMAX_PER_SHAPE     100
 #define CSHAPE_NBFIGMAX                 100
-
+#define CSHAPE_ROUNDING_DISTANCE        10
 //Point
 typedef struct cShape_plot{
     int x;
