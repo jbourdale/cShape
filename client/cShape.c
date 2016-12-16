@@ -134,6 +134,9 @@ void cShape_image_file_picker(char path[1024]){
 
 }
 
+void cShape_clear(cShape_shape* figures){
+    memset(figures, 0, CSHAPE_NBFIGMAX);
+}
 
 void cShape_mainLoop(){
 
@@ -202,7 +205,7 @@ void cShape_mainLoop(){
                             break;
 
                         case SDLK_r:
-                            memset(figures, 0, sizeof(figures));
+                            cShape_clear(figures);
                             break;
                     }
                     break;
