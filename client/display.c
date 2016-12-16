@@ -21,6 +21,8 @@ int displayInit(const char* caption, int width, int height) {
     printf("SDL_Init failed: %s\n", SDL_GetError());
     return 1;
   }
+
+  TTF_Init();
   // Second creates the window
   sdlWindow = SDL_CreateWindow(caption,
 			       SDL_WINDOWPOS_UNDEFINED,
@@ -31,6 +33,7 @@ int displayInit(const char* caption, int width, int height) {
     printf("SDL_CreateWindow failed: %s\n", SDL_GetError());
     return 1;
   }
+
   // Third creates the renderer for this window
   sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, 0);
   if (sdlRenderer == NULL) {
@@ -57,13 +60,12 @@ int displayInit(const char* caption, int width, int height) {
 } // displayInit(caption, width, height)
 
 
-void cShape_render(cShape_shape figs[], int figs_size, cShape_shape figActuel){
+void cShape_render(cShape_shape figs[], int figs_size, cShape_shape figActuel, cShape_popup popup){
 
-    SDL_RenderClear(sdlRenderer); //Clear de la scene
-
+    //Clear de la scene
+    SDL_RenderClear(sdlRenderer);
     displayDrawRect(0, 0,CSHAPE_WINDOW_WIDTH,CSHAPE_WINDOW_HEIGHT, 255, 255, 255, 255, true);
 
-    //printf("cShape_render\nNb figs : %d\n", figs_size);
     //Affichage de toutes les figures
     for(int i=0; i<figs_size; i++){
         //printf("fig[%d], nb line = %d\n", i, figs[i].nb_lines);
@@ -73,7 +75,8 @@ void cShape_render(cShape_shape figs[], int figs_size, cShape_shape figActuel){
             int x2 = figs[i].lines[j].plot_last.x;
             int y2 = figs[i].lines[j].plot_last.y;
             //printf("Render line : (%d,%d);(%d,%d)\n", x1,y1,x2,y2);
-            displayDrawLine(x1,y1,x2,y2,255,255,0,0);
+            //printf("Color : {%d,%d,%d,%d}",figs[i].color.a,figs[i].color.r,figs[i].color.g,figs[i].color.b);
+            displayDrawLine(x1,y1,x2,y2,figs[i].color.a,figs[i].color.r,figs[i].color.g,figs[i].color.b);
         }
     }
 
@@ -84,11 +87,25 @@ void cShape_render(cShape_shape figs[], int figs_size, cShape_shape figActuel){
             int y1 = figActuel.lines[i].plot_first.y;
             int x2 = figActuel.lines[i].plot_last.x;
             int y2 = figActuel.lines[i].plot_last.y;
+            //printf("Color : {%d,%d,%d,%d}",figActuel.color.a,figActuel.color.r,figActuel.color.g,figActuel.color.b);
             //printf("Render line : (%d,%d);(%d,%d)\n", x1,y1,x2,y2);
-            displayDrawLine(x1,y1,x2,y2,255,255,0,0);
+            displayDrawLine(x1,y1,x2,y2,figActuel.color.a,figActuel.color.r,figActuel.color.g,figActuel.color.b);
         }
     }
+
+    //Affichage de la popup si il y en a une
+    cShape_display_popup_frame(popup);
+
+
+    //Rendering the "hard" part of the screen
     SDL_RenderCopy(sdlRenderer, sdlScreenTexture, NULL, NULL);
+
+
+    //Rendering the text
+    cShape_display_popup_text(popup);
+
+
+
     SDL_RenderPresent(sdlRenderer);
 }
 
@@ -294,3 +311,100 @@ void displayDrawRect(int x, int y, int width, int height,
   if (SDL_SetRenderTarget(sdlRenderer, NULL) != 0)
     printf("SDL_SetRenderTarget failed : %s\n", SDL_GetError());
 } // displayDrawLine(int, int, int, int,int)
+
+
+/**
+* Render the message we want to display to a texture for drawing
+*/
+
+void renderText(const char* text, const char *fontFile, int size, SDL_Color fg, SDL_Color bg ,int x, int y, int w, int h){
+    TTF_Font* Arial = TTF_OpenFont("/usr/share/fonts/truetype/msttcorefonts/Arial.ttf", size);
+
+    SDL_Surface* surfaceMessage = TTF_RenderText_Shaded(Arial, text, fg, bg);
+
+    SDL_Texture* Message = SDL_CreateTextureFromSurface(sdlRenderer, surfaceMessage);
+
+    SDL_Rect Message_rect;
+    Message_rect.x = x;
+    Message_rect.y = y;
+    Message_rect.w = w;
+    Message_rect.h = h;
+
+    SDL_RenderCopy(sdlRenderer, Message, NULL, &Message_rect);
+    //TTF_Quit();
+}
+
+void cShape_display_popup_frame(cShape_popup popup){
+    //init popup frame
+    //black border
+    if(popup.type != -1){
+        displayDrawRect(150, 150, 500, 300,
+                 255, 0, 0, 0,
+                 true);
+        //grey interrior
+        displayDrawRect(155, 155, 490, 290,
+                 255, 73, 73, 73,
+                true);
+
+        switch(popup.type){
+            case CSHAPE_POPUP_COLOR:
+                //Displaying color choose
+                //Vert
+                displayDrawRect(225,300, 50,50,255,0,255,0,true);
+                //Rouge
+                displayDrawRect(325,300, 50,50,255,255,0,0,true);
+                //Bleu
+                displayDrawRect(425,300, 50,50,255,0,0,255,true);
+                //Noir
+                displayDrawRect(525,300, 50,50,255,0,0,0,true);
+                break;
+
+        }
+    }
+}
+
+void cShape_display_popup_text(cShape_popup popup){
+
+    if (popup.type != -1){
+        SDL_Color fontColor = {255, 255, 255};
+        SDL_Color backgroundFontColor = {73,73,73};
+        renderText(popup.title, "Arial.ttf", 50, fontColor,backgroundFontColor, 160,160, 200,50);
+
+        switch(popup.type){
+            case CSHAPE_POPUP_COLOR:
+                break;
+            case CSHAPE_POPUP_IMAGE:
+                break;
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

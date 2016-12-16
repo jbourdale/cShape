@@ -3,9 +3,15 @@
 
 #include "cshape.h"
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <stdbool.h>
 
-void cShape_render(cShape_shape figs[], int figs_size, cShape_shape figActuel);
+
+void renderText(const char* text, const char *fontFile, int size, SDL_Color fg, SDL_Color bg ,int x, int y, int w, int h);
+void cShape_display_popup_frame(cShape_popup popup);
+void cShape_display_popup_text(cShape_popup popup);
+void cShape_render(cShape_shape figs[], int figs_size, cShape_shape figActuel, cShape_popup popup);
+
 /** Opens a window with a title and a size.
  * @param caption the title of the window
  * @param width the width of the window
