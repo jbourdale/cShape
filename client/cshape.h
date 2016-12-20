@@ -6,8 +6,8 @@
 
 #define CSHAPE_WINDOW_WIDTH             800
 #define CSHAPE_WINDOW_HEIGHT            600
-#define CSHAPE_WINDOW_TITLE             "cShape"
-#define CSHAPE_NBLINESMAX_PER_SHAPE     100
+#define CSHAPE_WINDOW_TITLE             "cShape - draw online with anyone"
+#define CSHAPE_NBLINESMAX_PER_SHAPE     90  //90 parce que 9 + 90*16 + 8 = 1457 < 1480 (trame UDP)
 #define CSHAPE_NBFIGMAX                 100
 #define CSHAPE_ROUNDING_DISTANCE        10
 #define CSHAPE_POPUP_COLOR              1
