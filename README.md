@@ -13,11 +13,12 @@ de DUT Informatique.
 # Compilation
 
 Il y a deux unités à compiler séparement, le client et le serveur.
-Dans cShape/ :
-	- make : Compile le client et le serveur
-	- make cShape_client : Compile le client
-	- make cShape_serveur : Compile le serveur
-	- make clean : Supprime les exécutables
+
+	Dans cShape/ :
+		- make : Compile le client et le serveur
+		- make cShape_client : Compile le client
+		- make cShape_serveur : Compile le serveur
+		- make clean : Supprime les exécutables
 
 # Utilisation
 
