@@ -1,5 +1,4 @@
 #include "display.h"
-#include "cshape.h"
 #include <stdio.h>
 #include <unistd.h>
 
@@ -7,6 +6,8 @@ static SDL_Window *sdlWindow = NULL;
 static SDL_Renderer *sdlRenderer = NULL;
 static SDL_Texture *sdlScreenTexture = NULL;
 static SDL_Texture *sdlTexture = NULL;
+static TTF_Font* font_down_menu = NULL;
+static TTF_Font* font_popup = NULL;
 
 /**
  * Opens a window with a title and a size.
@@ -22,7 +23,20 @@ int displayInit(const char* caption, int width, int height) {
     return 1;
   }
 
+  //Init fonts
   TTF_Init();
+  font_down_menu = TTF_OpenFont("font/Arial.ttf", 40);
+  if(font_down_menu == NULL){
+    printf("Error intialising font");
+    return 1;
+  }
+  font_popup = TTF_OpenFont("font/Arial.ttf", 50);
+  if(font_popup == NULL){
+    printf("Error intialising font");
+    return 1;
+  }
+
+
   // Second creates the window
   sdlWindow = SDL_CreateWindow(caption,
 			       SDL_WINDOWPOS_UNDEFINED,
@@ -58,13 +72,19 @@ int displayInit(const char* caption, int width, int height) {
   SDL_RenderPresent(sdlRenderer);
   return 0;
 } // displayInit(caption, width, height)
-
-
-void cShape_render(cShape_shape figs[], int figs_size, cShape_shape figActuel, cShape_popup popup){
+/**
+ * Render every item of cShape, all the shape, popup ...
+ * @param figs array of shape we will render
+ * @param figs_size size of figs
+ * @param figActuel currently edit shape
+ * @param popup cShape_popup that define if popup is up or no
+ * @param bg Background color
+ */
+void cShape_render(cShape_shape figs[], int figs_size, cShape_shape figActuel, cShape_popup popup, SDL_Color bg){
 
     //Clear de la scene
     SDL_RenderClear(sdlRenderer);
-    displayDrawRect(0, 0,CSHAPE_WINDOW_WIDTH,CSHAPE_WINDOW_HEIGHT, 255, 255, 255, 255, true);
+    displayDrawRect(0, 0,CSHAPE_WINDOW_WIDTH,CSHAPE_WINDOW_HEIGHT, bg.a, bg.r, bg.g,bg.b, true);
 
     //Affichage de toutes les figures
     for(int i=0; i<figs_size; i++){
@@ -91,48 +111,25 @@ void cShape_render(cShape_shape figs[], int figs_size, cShape_shape figActuel, c
             //printf("Render line : (%d,%d);(%d,%d)\n", x1,y1,x2,y2);
             displayDrawLine(x1,y1,x2,y2,figActuel.color.a,figActuel.color.r,figActuel.color.g,figActuel.color.b);
         }
-    }
-
     //Affichage de la popup si il y en a une
+  }
     cShape_display_popup_frame(popup);
-
-
     //Rendering the "hard" part of the screen
     SDL_RenderCopy(sdlRenderer, sdlScreenTexture, NULL, NULL);
-
-
     //Rendering the text
     cShape_display_popup_text(popup);
-
-
-
+    cShape_down_menu();
     SDL_RenderPresent(sdlRenderer);
 }
 
-/** Displays the persistent screen on-screen.
+/*
+ * Displays the persistent screen on-screen.
  */
 void displayPersistentScreen() {
   SDL_RenderClear(sdlRenderer);
   SDL_RenderCopy(sdlRenderer, sdlScreenTexture, NULL, NULL);
   SDL_RenderPresent(sdlRenderer);
 }
-
-/** Checks for SDL events (non-blocking)
- * @return true iff the application should quit
- */
-_Bool checkEvents() {
-  SDL_Event e;
-  _Bool quit = false;
-  while (SDL_PollEvent(&e)){
-    switch (e.type) {
-    case SDL_QUIT:
-    case SDL_KEYDOWN:
-    case SDL_MOUSEBUTTONDOWN:
-      quit = true;
-    }
-  } // while more events
-  return quit;
-} // checkEvents()
 
 /**
  * closes the window and terminates the SDL system
@@ -311,29 +308,37 @@ void displayDrawRect(int x, int y, int width, int height,
   if (SDL_SetRenderTarget(sdlRenderer, NULL) != 0)
     printf("SDL_SetRenderTarget failed : %s\n", SDL_GetError());
 } // displayDrawLine(int, int, int, int,int)
-
-
 /**
-* Render the message we want to display to a texture for drawing
-*/
+ * Render the message we want to display to a texture and draw it on the
+ * persistent screen
+ * @param text Message to draw
+ * @param font font used to render the text
+ * @param fg Font color
+ * @param bg Background color
+ * @param x x-coordinate
+ * @param y y-coordinate
+ * @param w width of rect where will be render the text
+ * @param h height of rect where will be render the text
+ */
+void renderText(const char* text, TTF_Font* font, SDL_Color fg, SDL_Color bg ,int x, int y, int w, int h){
+    if(font != NULL && text != NULL){
+      SDL_Surface* surfaceMessage = TTF_RenderText_Shaded(font, text, fg, bg);
 
-void renderText(const char* text, const char *fontFile, int size, SDL_Color fg, SDL_Color bg ,int x, int y, int w, int h){
-    TTF_Font* Arial = TTF_OpenFont("/usr/share/fonts/truetype/msttcorefonts/Arial.ttf", size);
+      SDL_Texture* Message = SDL_CreateTextureFromSurface(sdlRenderer, surfaceMessage);
 
-    SDL_Surface* surfaceMessage = TTF_RenderText_Shaded(Arial, text, fg, bg);
+      SDL_Rect Message_rect;
+      Message_rect.x = x;
+      Message_rect.y = y;
+      Message_rect.w = w;
+      Message_rect.h = h;
 
-    SDL_Texture* Message = SDL_CreateTextureFromSurface(sdlRenderer, surfaceMessage);
-
-    SDL_Rect Message_rect;
-    Message_rect.x = x;
-    Message_rect.y = y;
-    Message_rect.w = w;
-    Message_rect.h = h;
-
-    SDL_RenderCopy(sdlRenderer, Message, NULL, &Message_rect);
-    //TTF_Quit();
+      SDL_RenderCopy(sdlRenderer, Message, NULL, &Message_rect);
+    }
 }
-
+/**
+ * Render the frame of popup
+ * @param popup popup that will be display
+ */
 void cShape_display_popup_frame(cShape_popup popup){
     //init popup frame
     //black border
@@ -348,27 +353,33 @@ void cShape_display_popup_frame(cShape_popup popup){
 
         switch(popup.type){
             case CSHAPE_POPUP_COLOR:
+            case CSHAPE_POPUP_REFRESH:
                 //Displaying color choose
                 //Vert
-                displayDrawRect(225,300, 50,50,255,0,255,0,true);
+                displayDrawRect(175,300, 50,50,255,0,255,0,true);
                 //Rouge
-                displayDrawRect(325,300, 50,50,255,255,0,0,true);
+                displayDrawRect(275,300, 50,50,255,255,0,0,true);
                 //Bleu
-                displayDrawRect(425,300, 50,50,255,0,0,255,true);
+                displayDrawRect(375,300, 50,50,255,0,0,255,true);
                 //Noir
-                displayDrawRect(525,300, 50,50,255,0,0,0,true);
+                displayDrawRect(475,300, 50,50,255,0,0,0,true);
+                //blanc
+                displayDrawRect(575,300, 50,50,255,255,255,255,true);
                 break;
 
         }
     }
 }
-
+/**
+ * Render the text of popup
+ * @param popup popup that will be display
+ */
 void cShape_display_popup_text(cShape_popup popup){
 
     if (popup.type != -1){
         SDL_Color fontColor = {255, 255, 255};
         SDL_Color backgroundFontColor = {73,73,73};
-        renderText(popup.title, "Arial.ttf", 50, fontColor,backgroundFontColor, 160,160, 200,50);
+        renderText(popup.title, font_popup, fontColor,backgroundFontColor, 160,160, 400,50);
 
         switch(popup.type){
             case CSHAPE_POPUP_COLOR:
@@ -378,33 +389,130 @@ void cShape_display_popup_text(cShape_popup popup){
         }
     }
 }
+/**
+ * Init cShape display
+ */
+_Bool cShape_initDisplay(){
+    return displayInit(CSHAPE_WINDOW_TITLE,CSHAPE_WINDOW_WIDTH,CSHAPE_WINDOW_HEIGHT) == 0;
+}
+/**
+ * Init shape
+ * @param shape shape to init
+ */
+void cShape_initShape(cShape_shape* shape){
+    shape->nb_lines = 0;
+
+    SDL_Color couleurDefaut = CSHAPE_COLOR_DEFAULT;
+    shape->color = couleurDefaut;
+
+    //On parcourt toutes les lignes possibles pour les inits correctement
+    for(int i = 0; i<CSHAPE_NBLINESMAX_PER_SHAPE; i++){
+        shape->lines[i].plot_first.x = -1;
+        shape->lines[i].plot_first.y = -1;
+        shape->lines[i].plot_last.x = -1;
+        shape->lines[i].plot_last.y = -1;
+    }
+}
+
+/**
+ * Detecting if the last point of the shape is near the first one
+ * to collapse them
+ */
+void cShape_rounding_last_lines(cShape_shape* shape){
+
+    cShape_plot first_plot= shape->lines[0].plot_first;
+    cShape_plot last_plot= shape->lines[shape->nb_lines-1].plot_last;
+
+    // sqrt( (x2-x1) + (y2-y1))
+    double dist = sqrt( pow((last_plot.x-first_plot.x),2)+ pow((last_plot.y-first_plot.y),2));
+    if (dist <= CSHAPE_ROUNDING_DISTANCE){
+        shape->lines[shape->nb_lines-1].plot_last.x = first_plot.x;
+        shape->lines[shape->nb_lines-1].plot_last.y = first_plot.y;
+    }
+
+}
+/**
+ * Copy shape and append it to figs.
+ * @param shape shape to submit
+ * @param figs shapes array
+ * @param figs_size size of figs
+ */
+void cShape_submit_shape(cShape_shape* shape, cShape_shape figs[], int* figs_size){
+
+    if(shape->nb_lines > 0){
+        cShape_rounding_last_lines(shape);
+
+        cShape_shape new_shape;
+        cShape_initShape(&new_shape);
+
+        //Copying shape into new_shape
+        new_shape.color = shape->color;
+        new_shape.nb_lines = shape->nb_lines;
+        for(int i = 0; i < shape->nb_lines; i++){
+            new_shape.lines[i].plot_first.x = shape->lines[i].plot_first.x;
+            new_shape.lines[i].plot_first.y = shape->lines[i].plot_first.y;
+
+            new_shape.lines[i].plot_last.x = shape->lines[i].plot_last.x;
+            new_shape.lines[i].plot_last.y = shape->lines[i].plot_last.y;
+        }
 
 
+        //Adding it to the main list of shapes
+        figs[*figs_size] = new_shape;
+        *figs_size = *figs_size+1;
 
+			 //reset fig actuel
+       cShape_initShape(shape);
+    }
+    //exit(0);
+}
+/**
+ * Setter and init for popup p
+ * @param p popup to set
+ * @param type type of the popup p
+ */
+void cShape_set_popup(cShape_popup* p,int type){
+    p->type = type;
+    switch(type){
+        case CSHAPE_POPUP_COLOR:
+            p->title = "Choissiez une couleur";
+            break;
+        case CSHAPE_POPUP_IMAGE:
+            p->title = "Path de l'image";
+            break;
+        case CSHAPE_POPUP_REFRESH:
+            p->title = "Choississez la couleur de fond";
+            break;
+    }
+}
+/**
+ * Init popup p
+ * @param p popup to init
+ */
+void cShape_initPopup(cShape_popup* p){
+    p->imagePath = "";
+    p->title = "";
+    p->type = -1;
+}
+/**
+ * Delete all item of shape array
+ * @param figures shape array
+ * @param size size of figures
+ */
+void cShape_clear(cShape_shape* figures, int* size){
+    int i=0;
+    while(figures[i].nb_lines != 0){
+        cShape_initShape(&figures[i]);
+        i++;
+    }
+    *size = 0;
+}
+/**
+ * Render the down menu text
+ */
+ void cShape_down_menu(){
+   SDL_Color fontColor = {255, 255, 255};
+   SDL_Color backgroundFontColor = {73,73,73};
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+   renderText("cShape | C : Drawing color | R : Renew | Enter : Finish shape", font_down_menu, fontColor,backgroundFontColor, 0,570, 800,30);
+}
