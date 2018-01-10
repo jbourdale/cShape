@@ -116,4 +116,4 @@ ils peuvent interagir via les I/O standards (clavier/souris).
 # Auteur
 
 	Jules Bourdalé.
-	etudiant@jbourdale.fr
+	jules.bourdale@gmail.com
